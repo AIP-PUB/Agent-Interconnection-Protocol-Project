@@ -34,7 +34,7 @@
 (8)[发现与注册数据同步（Discovery and Registration Coordination，DRC）规范](08/ACPs-spec-DRC.md)
 
 # 4. demo使用
-为了您快速体验本协议族，我们提供了一个demo，其代码仓库位于 [ACPs-Demo-Project](https://github.com/aip-admin1/ACPs-Demo-Project),在这里我们提供了能快速体验demo的流程。
+为了您快速体验本协议族，我们提供了一个demo，其代码仓库位于 [ACPs-Demo-Project](https://github.com/aip-pub/ACPs-Demo-Project),在这里我们提供了能快速体验demo的流程。
 
 # 5. 补充说明
 

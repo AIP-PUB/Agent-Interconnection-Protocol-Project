@@ -1,24 +1,24 @@
 [首页](../README.md)
 
-ACS：智能体能力描述（ACPs-spec-ACS-v01.00）
+ACS：智能体能力描述（ACPs-spec-ACS-v02.00）
 
 # 1. 文档定义
 
-本文档为支持智能体互联的 ACPs 智能体协作协议体系中的智能体能力描述（Agent Capability Specification，ACS）标准定义，版本号 v01.00。
+本文档为支持智能体互联的 ACPs 智能体协作协议体系中的智能体能力描述（Agent Capability Specification，ACS）标准定义，版本号 v02.00。
 
-文档全称为 ACPs-spec-ACS-v01.00。
+文档全称为 ACPs-spec-ACS-v02.00。
 
-文档编写者：禹可（北京邮电大学），刘军（北京邮电大学），李珂（北京邮电大学），郭小练（北京邮电大学），李胤铭（北京邮电大学），宋昊哲（北京邮电大学），胡晓峰（北京邮电大学），马镝（北京邮电大学）。
+文档编写者：禹可（北京邮电大学），刘军（北京邮电大学），李珂（北京邮电大学），郭小练（北京邮电大学），李胤铭（北京邮电大学），宋昊哲（北京邮电大学），胡晓峰（北京邮电大学），马镝（北京邮电大学），陈科良（北京邮电大学）。
 
 # 2. 智能体能力描述介绍及相关流程
 
-智能体互联要能成为一个安全可靠的智能体系统，需要具备的一个重要能力是支持智能体描述自身的能力并进行保存和支持获取。智能体能力描述方式既要保证一定的规范性以便于智能体之间互联互通，也需要具备一定的灵活性以适应基于大模型的智能体复杂能力表述。为达到以上目标，我们在本文档中定义智能体能力描述（Agent Capability Specification，ACS）规范。
+智能体互联要能成为一个安全可靠的智能体系统，需要具备的一个重要能力是支持智能体描述自身的能力并对该描述进行保存和支持获取其它智能体对自身能力的描述。智能体能力描述方式既要保证一定的规范性以便于智能体之间互联互通，也需要具备一定的灵活性以适应基于大模型的智能体复杂能力表述。为达到以上目标，我们在本文档中定义智能体能力描述（Agent Capability Specification，ACS）规范。
 
-每个智能体应为自己生成一个 ACS，并在智能体注册服务商（Agent Registration Service Provider，ARSP）登记。智能体注册服务商可以将智能体登记的 ACS 提供给其他智能体以支持智能体能力查询。智能体登记和获取 ACS 的流程如下图所示。
+每个智能体应为自己生成一个 ACS，并在智能体注册服务商（Agent Registration Service Provider，ARSP）登记。智能体注册服务商可以将智能体登记的 ACS 通过数据同步协议（Data Synchronization Protocol, DSP）同步给智能体发现服务商（Agent Discovery Service Provider，ADSP），由智能体发现服务商提供给其他智能体以支持智能体能力查询。智能体登记和获取 ACS 的流程如下图所示。
 
 ![3-1.png](3-1.png)
 
-注：除以上通过 ARSP 获取 ACS 外，智能体也可以将自己的 ACS 文件放置于自身服务访问地址下，以 Well Known 的方式支持其他使用者直接获取，例如`https://agent.example.com/agent_spec.json`. 不过需要特别指出的是，使用者采用该方式获取智能体能力描述，是一种不安全的方式，我们更建议通过 ARSP 方式获取。
+注：除以上通过智能体发现服务商方式获取 ACS 外，智能体也可以将自己的 ACS 文件放置于自身服务访问地址下，以 Well Known 的方式支持其他使用者直接获取，例如`https://agent.example.com/.well-known/acs.json`. 不过需要特别指出的是，使用者采用该方式获取智能体能力描述，是一种不安全的方式，我们更建议通过智能体发现服务商方式获取 ACS 以确保其安全可靠。
 
 # 3. 智能体能力描述定义
 
@@ -38,7 +38,7 @@ export interface AgentCapabilitySpec {
   /**
    * 智能体唯一身份标识符，由注册服务分配。
    *
-   * @TJS-examples ["10001000011K912345E789ABCDEF2353"]
+   * @TJS-examples ["1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN"]
    */
   aic: string;
 
@@ -60,7 +60,7 @@ export interface AgentCapabilitySpec {
   /**
    * 此智能体支持的ACPs协议版本，用于协议兼容性检查和版本匹配。
    *
-   * @TJS-examples ["01.00"]
+   * @TJS-examples ["02.00"]
    */
   protocolVersion: string;
 
@@ -128,6 +128,9 @@ export interface AgentCapabilitySpec {
    * 目前支持的方案包括：
    * - mutualTLS: 双向TLS认证，适用于智能体间的高安全级别通信
    * - openIdConnect: OpenID Connect认证，适用于用户身份验证场景
+   * - apiKey: API密钥认证，适用于简单服务鉴权场景
+   * - http: HTTP认证方案，适用于Basic/Bearer等认证场景
+   * - oauth2: OAuth2认证，适用于标准授权流程场景
    *
    * @TJS-examples [
    *   {
@@ -151,7 +154,15 @@ export interface AgentCapabilitySpec {
    * 每个端点包含URL、传输协议和安全要求。
    * 多个端点应该支持相同的业务功能，支持不同的协议和认证方式，以满足多样化的访问需求。
    *
-   * 本字段为空数组，表示本智能体没有提供服务端点给其它智能体使用。这样的智能体通常是面向最终用户的助手类智能体。
+   * 如果智能体没有提供服务端点给其它智能体使用，通常是面向最终用户的助手类智能体，则：
+   * - 本字段为空数组。
+   *
+   * 如果作为一个智能体本体（Ontology），因为本体不直接提供服务端点，则：
+   * - 此字段为空数组，
+   *
+   * 如果作为一个派生出来的智能体实体（Entity），则：
+   * - 需要对外提供服务端点，则此字段应包含相应的端点配置。
+   * - 不对外提供服务端点，则此字段为空数组。
    *
    * @TJS-examples [[{"url": "https://api.example.com/acps-v1", "transport": "JSONRPC", "security": [{"mtls": []}]}]]
    */
@@ -160,7 +171,7 @@ export interface AgentCapabilitySpec {
   /**
    * 智能体支持的可选能力声明，如流式响应、异步通知、消息队列等。
    *
-   * @TJS-examples [{"streaming": true, "notification": false, "messageQueue": ["mqtt:5.0", "kafka:3.0"]}, {"streaming": false, "notification": true, "messageQueue": []}]
+   * @TJS-examples [{"streaming": true, "notification": false, "messageQueue": ["mqtt:5.*", "kafka:>=2.8 <4.0"]}, {"streaming": false, "notification": true, "messageQueue": []}]
    */
   capabilities: AgentCapabilities;
 
@@ -188,6 +199,21 @@ export interface AgentCapabilitySpec {
    * @TJS-examples [[{"id": "beijing-tour/sight-recommender", "name": "景点推荐", "version": "1.0.0", "tags": ["旅游", "北京"]}]]
    */
   skills: AgentSkill[];
+
+  /**
+   * 实体的用户关联ID。用于将智能体实体与特定用户绑定。
+   * 用于用户助手类智能体，标识该智能体为某个特定用户提供服务。
+   */
+  entityUserId?: string;
+  /**
+   * 实体的额外元数据。具体格式和内容由Agent Provider自定义。
+   *
+   * 如果Agent对外提供API服务，可以补充比如实体的地理位置、环境信息等。
+   * 如果Agent是用户助手，可以用户相关的数据信息。
+   *
+   * @TJS-examples [{"location": "Beijing", "environment": "production"}, {"userRelation": "personal-assistant"}]
+   */
+  entityMeta?: Record<string, any>;
 }
 ```
 
@@ -213,7 +239,7 @@ export interface AgentProvider {
    *
    * @TJS-examples ["北京邮电大学"]
    */
-  organization: string;
+  organization?: string;
 
   /**
    * 智能体提供者的具体部门或院系名称，提供更精确的组织结构信息。
@@ -227,7 +253,7 @@ export interface AgentProvider {
    *
    * @TJS-examples ["https://ai.bupt.edu.cn"]
    */
-  url: string;
+  url?: string;
 
   /**
    * 智能体提供者的法律备案信息或许可证号，用于合规性验证。
@@ -235,7 +261,20 @@ export interface AgentProvider {
    *
    * @TJS-examples ["京ICP备14033833号-1"]
    */
-  license: string;
+  license?: string;
+
+  /**
+   * 智能体提供者的联系人姓名，便于技术支持和沟通。
+   * @TJS-examples ["张三", "李四"]
+   */
+  name?: string;
+
+  /**
+   * 智能体提供者的联系人电子邮箱地址。
+   *
+   * @TJS-examples ["zhangsan@example.com", "lisi@example.com"]
+   */
+  email?: string;
 }
 ```
 
@@ -243,32 +282,27 @@ export interface AgentProvider {
 
 ```typescript
 /**
- * 消息队列协议版本枚举类型。
- * 定义智能体支持的各种消息队列中间件及其具体版本，
- * 用于异步消息传递、事件通知和分布式系统集成。
- * 使用"protocol:version"格式提供精确的技术栈定义。
- *
- * @TJS-examples ["mqtt:5.0", "kafka:3.1", "redis:7.2"]
+ * 允许的消息队列协议名称。
+ * 协议名称为固定枚举，新增协议需修改本规范。
  */
-export type MQProtocolVersion =
-  // MQTT 版本
-  | "mqtt:3.1.1"
-  | "mqtt:5.0"
-  // AMQP 版本
-  | "amqp:0.9.1"
-  | "amqp:1.0"
-  // Kafka 版本
-  | "kafka:2.8"
-  | "kafka:3.0"
-  | "kafka:3.1"
-  // Redis 版本
-  | "redis:6.0"
-  | "redis:7.0"
-  | "redis:7.2"
-  // RabbitMQ 版本
-  | "rabbitmq:3.9"
-  | "rabbitmq:3.10"
-  | "rabbitmq:3.11";
+export type MQProtocol = "mqtt" | "amqp" | "kafka" | "redis" | "rabbitmq";
+
+/**
+ * 消息队列协议版本表达式。
+ * 格式为 "{protocol}:{versionExpr}"，其中：
+ * - protocol: 必须为 MQProtocol 中定义的协议名称之一
+ * - versionExpr: 版本表达式，支持以下四种模式：
+ *   1. 精确版本: "X.Y[.Z]"              —— 仅匹配指定版本
+ *   2. 最低版本: ">=X.Y[.Z]"            —— 匹配该版本及以上
+ *   3. 版本范围: ">=X.Y[.Z] <X.Y[.Z]"  —— 匹配闭-开区间内的版本
+ *   4. 通配符:   "X.*"                   —— 匹配该主版本的所有次版本
+ *
+ * 生成 JSON Schema 时可使用正则约束：
+ * pattern: "^(mqtt|amqp|kafka|redis|rabbitmq):(>=)?\\d+\\.(\\*|\\d+(\\.\\d+)?)( <\\d+\\.\\d+(\\.\\d+)?)?$"
+ *
+ * @TJS-examples ["kafka:>=2.8 <4.0", "mqtt:5.*", "amqp:>=0.9.1", "redis:>=7.0", "rabbitmq:3.*", "kafka:3.1"]
+ */
+export type MQProtocolVersion = `${MQProtocol}:${string}`;
 
 /**
  * 智能体可选技术能力配置对象。
@@ -293,11 +327,13 @@ export interface AgentCapabilities {
   notification: boolean;
 
   /**
-   * 智能体支持的消息队列能力配置。使用协议版本字符串数组进行配置。
+   * 智能体支持的消息队列能力配置。使用协议版本表达式字符串数组进行配置。
    * 支持多种消息队列协议，用于异步消息传递和事件通知。
+   * 每个元素的格式为 "{protocol}:{versionExpr}"，协议名称必须为 MQProtocol 中定义的值，
+   * 版本表达式支持精确版本、最低版本、版本范围和通配符四种模式。
    * 空数组表示不支持任何消息队列协议。
    *
-   * @TJS-examples [["mqtt:5.0", "amqp:0.9.1", "kafka:3.0"], ["redis:7.2", "rabbitmq:3.11"], []]
+   * @TJS-examples [["mqtt:5.*", "kafka:>=2.8 <4.0"], ["redis:>=7.0", "rabbitmq:3.*"], []]
    */
   messageQueue: MQProtocolVersion[];
 }
@@ -311,8 +347,6 @@ export interface AgentCapabilities {
  * 这是基于 OpenAPI 3.0 安全方案对象的判别联合类型。
  *
  * @see {@link https://swagger.io/specification/#security-scheme-object}
- *
- * 本文暂时只支持 MutualTLS 和 OpenIdConnect 两种方案。
  */
 export type SecurityScheme =
   | APIKeySecurityScheme
@@ -346,7 +380,7 @@ export interface MutualTLSSecurityScheme {
    *
    * @TJS-examples ["https://certs.example.com/agent-challenge", "https://ca.example.com/challenge/v1"]
    */
-  "x-caChallengeBaseUrl": string;
+  x-caChallengeBaseUrl: string;
 }
 
 /**
@@ -375,6 +409,154 @@ export interface OpenIdConnectSecurityScheme {
    * @TJS-examples ["https://auth.example.com/.well-known/openid-configuration", "https://accounts.google.com/.well-known/openid-configuration", "https://login.microsoftonline.com/common/.well-known/openid-configuration"]
    */
   openIdConnectUrl: string;
+}
+
+/**
+ * API Key认证安全方案，通过API密钥进行身份验证。
+ */
+export interface APIKeySecurityScheme{
+  /**
+   * 安全方案类型，固定为"apiKey"。
+   *
+   * @TJS-examples ["apiKey"]
+   */
+  type: "apiKey";
+
+  /**
+   * 安全方案的描述信息，说明该方案的用途和特点。
+   *
+   * @TJS-examples ["基于API Key的统一身份认证"]
+   */
+  description?: string;
+
+  /**
+   * API密钥参数的名称。
+   *
+   * @TJS-examples ["example-api-key-name"]
+   */
+  name: string;
+
+  /**
+   * API密钥的位置：query, header 或 cookie。
+   *
+   * @TJS-examples ["query", "header", "cookie"]
+   */
+  in: "query" | "header" | "cookie";
+}
+
+/**
+ *  HTTP 认证安全方案，支持 Basic、Bearer 等认证方式。
+ */
+export interface HTTPAuthSecurityScheme{
+  /**
+   * 安全方案类型，固定为"http"。
+   *
+   * @TJS-examples ["http"]
+   */
+  type: "http";
+
+  /**
+   * 安全方案的描述信息，说明该方案的用途和特点。
+   *
+   * @TJS-examples ["基于HTTP的统一身份认证"]
+   */
+  description?: string;
+
+  /**
+   * HTTP认证方案名称，如 'basic', 'bearer' 等。
+   *
+   * @TJS-examples ["basic", "bearer"]
+   */
+  scheme: string;
+
+  /**
+   * Bearer令牌的格式提示，仅当scheme为'bearer'时使用。
+   *
+   * @TJS-examples ["None"]
+   */
+  bearerFormat?: string;
+}
+
+/**
+ * OAuth2 单个授权流程配置
+ */
+export interface OAuth2Flow {
+  /**
+   * 授权端点URL（如授权码流程需要）。
+   *
+   * @TJS-examples ["https://auth.example.com/oauth2/authorize"]
+   */
+  authorizationUrl?: string;
+
+  /**
+   * 令牌端点URL（如密码模式、客户端凭证、授权码流程需要）。
+   *
+   * @TJS-examples ["https://auth.example.com/oauth2/token"]
+   */
+  tokenUrl?: string;
+
+  /**
+   * 刷新令牌端点URL（可选）。
+   *
+   * @TJS-examples ["https://auth.example.com/oauth2/refresh"]
+   */
+  refreshUrl?: string;
+
+  /**
+   * 可用作用域定义，键为scope名，值为说明。
+   *
+   * @TJS-examples [{"read:profile": "读取用户资料", "write:data": "写入业务数据"}]
+   */
+  scopes: { [scope: string]: string };
+}
+
+/**
+ * OAuth2 流程集合定义
+ */
+export interface OAuth2Flows {
+  /**
+   * 隐式授权流程配置
+   */
+  implicit?: OAuth2Flow;
+
+  /**
+   * 资源所有者密码凭据流程配置
+   */
+  password?: OAuth2Flow;
+
+  /**
+   * 客户端凭据流程配置
+   */
+  clientCredentials?: OAuth2Flow;
+
+  /**
+   * 授权码流程配置
+   */
+  authorizationCode?: OAuth2Flow;
+}
+
+/**
+ * OAuth2 安全方案
+ */
+export interface OAuth2SecurityScheme {
+  /**
+   * 安全方案类型，固定为"oauth2"。
+   *
+   * @TJS-examples ["oauth2"]
+   */
+  type: "oauth2";
+
+  /**
+   * 安全方案描述信息。
+   *
+   * @TJS-examples ["基于OAuth2的授权认证方案"]
+   */
+  description?: string;
+
+  /**
+   * OAuth2 各授权流程配置。
+   */
+  flows: OAuth2Flows;
 }
 ```
 
@@ -516,12 +698,12 @@ export interface AgentSkill {
 ```json
 {
   // 智能体身份信息。由注册服务分配和维护，不是由智能体提供者定义。
-  "aic": "10001000011K912345E789ABCDEF2353",
+  "aic": "1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN",
   "active": true,
   "lastModifiedTime": "2025-03-15T16:30:00+08:00",
 
   // ACPs协议版本
-  "protocolVersion": "01.00",
+  "protocolVersion": "02.00",
 
   // 智能体基本描述信息
   "name": "北京城区旅游规划助手",
@@ -568,7 +750,7 @@ export interface AgentSkill {
   "capabilities": {
     "streaming": true,
     "notification": true,
-    "messageQueue": ["rabbitmq:3.11"]
+    "messageQueue": ["rabbitmq:3.*"]
   },
 
   // 默认输入输出格式
@@ -628,11 +810,11 @@ export interface AgentSkill {
 
 ```json
 {
-  "aic": "10001000011K920251018D8888JQKA91",
+  "aic": "1.2.156.3088.1.34C2.478BDE.3GF546.1.0RBK",
   "active": true,
   "lastModifiedTime": "2025-04-10T09:45:00+08:00",
 
-  "protocolVersion": "01.00",
+  "protocolVersion": "02.00",
 
   "name": "全国范围旅游助手",
   "description": "提供中国全国范围内的旅游信息服务和行程规划。覆盖全国34个省级行政区的主要旅游景点、特色文化、交通指南和住宿推荐。支持跨地区旅游路线规划，可协调其他地区专业智能体提供深度服务。",
@@ -678,7 +860,7 @@ export interface AgentSkill {
   "capabilities": {
     "streaming": true,
     "notification": true,
-    "messageQueue": ["kafka:3.1", "mqtt:5.0"]
+    "messageQueue": ["kafka:>=2.8 <4.0", "mqtt:5.*"]
   },
 
   "defaultInputModes": ["text/plain", "application/json", "image/jpeg"],
